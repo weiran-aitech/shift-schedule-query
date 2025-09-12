@@ -2,24 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Shift Schedule Query</title>
-  <link rel="stylesheet" href="style.css">
+  <title>My Project</title>
 </head>
 <body>
-  <!-- Navbar will be injected here -->
-  <div id="navbar"></div>
+  <h1>FastAPI + GitHub Pages Demo</h1>
+  <button onclick="callApi()">Call FastAPI</button>
+  <p id="result"></p>
 
-  <h1>Welcome to Query Page</h1>
-  <p>This is the homepage.</p>
-
-  <img src="images/logo.png" alt="Logo">
-
-  <script src="script.js"></script>
   <script>
-    fetch("nav.html")
-      .then(r => r.text())
-      .then(d => document.getElementById("navbar").innerHTML = d);
+    async function callApi() {
+      const response = await fetch("https://schedule-query.onrender.com/api/hello");
+      const data = await response.json();
+      document.getElementById("result").innerText = data.message;
+    }
   </script>
 </body>
 </html>
+
 
