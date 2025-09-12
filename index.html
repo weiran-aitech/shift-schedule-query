@@ -2,24 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My Project</title>
+  <title>Task Manager</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #2c3e50; }
+    table { border-collapse: collapse; width: 60%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f4f4f4; }
+    form { margin-top: 20px; }
+    input, button { padding: 8px; margin: 5px; }
+  </style>
 </head>
 <body>
-  <h1>FastAPI + GitHub Pages Demo</h1>
-  <button onclick="callApi()">Call FastAPI</button>
-  <p id="result"></p>
+  <h1>Task Manager</h1>
+
+  <!-- Form to add new task -->
+  <form id="taskForm">
+    <input type="text" id="name" placeholder="Task Name" required>
+    <input type="number" id="duration" placeholder="Duration (min)" required>
+    <button type="submit">Add Task</button>
+  </form>
+
+  <!-- Table to display tasks -->
+  <table id="taskTable">
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Duration (min)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    async function callApi() {
-  try {
-    const response = await fetch("https://schedule-query.onrender.com/api/hello");
-    const data = await response.json();
-    document.getElementById("result").innerText = data.message;
-  } catch (error) {
-    document.getElementById("result").innerText = "Error calling API!";
-    console.error(error);
-  }
-}
+    const API_URL = "https://schedule-query.onrender.com/api/tasks";
+
+    async function loadTasks() {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      const tbody = document.querySelector("#taskTable tbody");
+      tbody.innerHTML = "";
+      data.tasks.forEach(task => {
+        const row = `<tr><td>${task.id}</td><td>${task.name}</td><td>${task.duration}</td></tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    document.getElementById("taskForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const duration = parseInt(document.getElementById("duration").value);
+
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, duration })
+      });
+
+      // Reset form and reload tasks
+      e.target.reset();
+      loadTasks();
+    });
+
+    // Load tasks on page load
+    loadTasks();
   </script>
 </body>
 </html>
