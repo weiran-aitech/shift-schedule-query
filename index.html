@@ -34,6 +34,7 @@
       <h3>Signup</h3>
       <input type="text" id="signup-username" placeholder="Username" required>
       <input type="password" id="signup-password" placeholder="Password" required>
+      <input type="password" id="signup-password2" placeholder="Confirm Password" required>
       <button type="submit">Signup</button>
     </form>
   </div>
@@ -56,7 +57,7 @@
   </table>
 
   <script>
-    const BASE_URL = "https://schedule-query.onrender.com/api"; // change to your Render backend
+    const BASE_URL = "https://my-fastapi-app.onrender.com/api"; // change to your backend
     const TASKS_URL = `${BASE_URL}/tasks`;
     const LOGIN_URL = `${BASE_URL}/login`;
     const SIGNUP_URL = `${BASE_URL}/signup`;
@@ -107,7 +108,9 @@
       });
 
       if (res.ok) {
-        alert("Signup successful! You can now log in.");
+        // automatically login after signup
+        await login(username, password);
+        alert("Signup successful! You are now logged in.");
       } else {
         const err = await res.json();
         alert("Signup failed: " + (err.detail || "Unknown error"));
@@ -131,6 +134,13 @@
       e.preventDefault();
       const username = document.getElementById("signup-username").value;
       const password = document.getElementById("signup-password").value;
+      const password2 = document.getElementById("signup-password2").value;
+
+      if (password !== password2) {
+        alert("Passwords do not match!");
+        return;
+      }
+
       signup(username, password);
     });
 
