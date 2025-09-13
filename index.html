@@ -2,100 +2,162 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Task Manager</title>
+  <title>Task Manager (Login & Signup)</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     h1 { color: #2c3e50; }
+    form { margin-bottom: 20px; }
+    input, button { padding: 6px; margin: 3px; }
     table { border-collapse: collapse; width: 80%; margin-top: 20px; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background-color: #f4f4f4; }
-    form { margin-top: 20px; }
-    input, button { padding: 6px; margin: 3px; }
-    .delete-btn { background-color: #e74c3c; color: white; border: none; cursor: pointer; }
-    .delete-btn:hover { background-color: #c0392b; }
-    .edit-btn { background-color: #3498db; color: white; border: none; cursor: pointer; }
-    .edit-btn:hover { background-color: #2980b9; }
-    .save-btn { background-color: #2ecc71; color: white; border: none; cursor: pointer; }
-    .save-btn:hover { background-color: #27ae60; }
-    .cancel-btn { background-color: #95a5a6; color: white; border: none; cursor: pointer; }
-    .cancel-btn:hover { background-color: #7f8c8d; }
+    .auth-section { display: flex; gap: 40px; }
+    .auth-section form { border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <h1>Task Manager</h1>
+  <h1>Task Manager (with Login & Signup)</h1>
 
-  <!-- Form to add new task -->
-  <form id="taskForm">
+  <!-- Authentication Section -->
+  <div class="auth-section">
+    <!-- Login Form -->
+    <form id="loginForm">
+      <h3>Login</h3>
+      <input type="text" id="login-username" placeholder="Username" required>
+      <input type="password" id="login-password" placeholder="Password" required>
+      <button type="submit">Login</button>
+      <button type="button" onclick="logout()">Logout</button>
+    </form>
+
+    <!-- Signup Form -->
+    <form id="signupForm">
+      <h3>Signup</h3>
+      <input type="text" id="signup-username" placeholder="Username" required>
+      <input type="password" id="signup-password" placeholder="Password" required>
+      <button type="submit">Signup</button>
+    </form>
+  </div>
+
+  <p id="loginStatus">Not logged in</p>
+
+  <!-- Add Task Form -->
+  <form id="taskForm" style="display:none;">
     <input type="text" id="name" placeholder="Task Name" required>
     <input type="number" id="duration" placeholder="Duration (min)" required>
     <button type="submit">Add Task</button>
   </form>
 
-  <!-- Table to display tasks -->
+  <!-- Task Table -->
   <table id="taskTable">
     <thead>
-      <tr><th>ID</th><th>Name</th><th>Duration (min)</th><th>Actions</th></tr>
+      <tr><th>ID</th><th>Name</th><th>Duration</th><th>Actions</th></tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    const API_URL = "https://schedule-query.onrender.com/api/tasks";
+    const BASE_URL = "https://my-fastapi-app.onrender.com/api"; // change to your Render backend
+    const TASKS_URL = `${BASE_URL}/tasks`;
+    const LOGIN_URL = `${BASE_URL}/login`;
+    const SIGNUP_URL = `${BASE_URL}/signup`;
+
+    let token = localStorage.getItem("token");
+
+    function updateUI() {
+      if (token) {
+        document.getElementById("taskForm").style.display = "block";
+        document.getElementById("loginStatus").innerText = "Logged in";
+      } else {
+        document.getElementById("taskForm").style.display = "none";
+        document.getElementById("loginStatus").innerText = "Not logged in";
+      }
+    }
+
+    async function login(username, password) {
+      const params = new URLSearchParams();
+      params.append("username", username);
+      params.append("password", password);
+
+      const res = await fetch(LOGIN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        token = data.access_token;
+        localStorage.setItem("token", token);
+        updateUI();
+        loadTasks();
+      } else {
+        alert("Login failed!");
+      }
+    }
+
+    async function signup(username, password) {
+      const params = new URLSearchParams();
+      params.append("username", username);
+      params.append("password", password);
+
+      const res = await fetch(SIGNUP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params
+      });
+
+      if (res.ok) {
+        alert("Signup successful! You can now log in.");
+      } else {
+        const err = await res.json();
+        alert("Signup failed: " + (err.detail || "Unknown error"));
+      }
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem("token");
+      updateUI();
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const username = document.getElementById("login-username").value;
+      const password = document.getElementById("login-password").value;
+      login(username, password);
+    });
+
+    document.getElementById("signupForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const username = document.getElementById("signup-username").value;
+      const password = document.getElementById("signup-password").value;
+      signup(username, password);
+    });
 
     async function loadTasks() {
-      const response = await fetch(API_URL);
-      const data = await response.json();
+      const res = await fetch(TASKS_URL);
+      const data = await res.json();
       const tbody = document.querySelector("#taskTable tbody");
       tbody.innerHTML = "";
       data.tasks.forEach(task => {
-        const row = `
-          <tr id="row-${task.id}">
-            <td>${task.id}</td>
-            <td id="name-${task.id}">${task.name}</td>
-            <td id="duration-${task.id}">${task.duration}</td>
-            <td>
-              <button class="edit-btn" onclick="editTask(${task.id})">Edit</button>
-              <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
-            </td>
-          </tr>`;
-        tbody.innerHTML += row;
+        let actions = "";
+        if (token) {
+          actions = `
+            <button onclick="editTask(${task.id})">Edit</button>
+            <button onclick="deleteTask(${task.id})">Delete</button>`;
+        }
+        tbody.innerHTML += `<tr><td>${task.id}</td><td>${task.name}</td><td>${task.duration}</td><td>${actions}</td></tr>`;
       });
     }
 
-    async function deleteTask(id) {
-      if (!confirm("Are you sure you want to delete this task?")) return;
-      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-      loadTasks();
-    }
-
-    function editTask(id) {
-      const nameCell = document.getElementById(`name-${id}`);
-      const durationCell = document.getElementById(`duration-${id}`);
-      const row = document.getElementById(`row-${id}`);
-
-      const currentName = nameCell.innerText;
-      const currentDuration = durationCell.innerText;
-
-      nameCell.innerHTML = `<input type="text" id="edit-name-${id}" value="${currentName}">`;
-      durationCell.innerHTML = `<input type="number" id="edit-duration-${id}" value="${currentDuration}">`;
-
-      row.querySelector("td:last-child").innerHTML = `
-        <button class="save-btn" onclick="saveTask(${id})">Save</button>
-        <button class="cancel-btn" onclick="loadTasks()">Cancel</button>
-      `;
-    }
-
-    async function saveTask(id) {
-      const newName = document.getElementById(`edit-name-${id}`).value;
-      const newDuration = parseInt(document.getElementById(`edit-duration-${id}`).value);
-
-      await fetch(`${API_URL}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName, duration: newDuration })
-      });
-
-      loadTasks();
+    async function authFetch(url, options = {}) {
+      if (!token) { alert("Login required"); return; }
+      options.headers = {
+        ...(options.headers || {}),
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      };
+      return fetch(url, options);
     }
 
     document.getElementById("taskForm").addEventListener("submit", async (e) => {
@@ -103,16 +165,15 @@
       const name = document.getElementById("name").value;
       const duration = parseInt(document.getElementById("duration").value);
 
-      await fetch(API_URL, {
+      await authFetch(TASKS_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, duration })
       });
-
       e.target.reset();
       loadTasks();
     });
 
+    updateUI();
     loadTasks();
   </script>
 </body>
